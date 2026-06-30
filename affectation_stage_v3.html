@@ -1,0 +1,950 @@
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0
+  }
+
+  :root {
+    --app-bg: #E8F2FF;
+    --panel-bg: #FFFFFF;
+    --panel-alt: #F6F9FF;
+    --border-c: #C6D8EB;
+    --text-1: #112C54;
+    --text-2: #4A6F9C;
+    --text-3: #7C95B2;
+    --blue: #1F62B8;
+    --blue-bg: #E7F0FF;
+    --blue-soft: #D9E6FF;
+    --green: #1D7B78;
+    --green-bg: #E7F2F2;
+    --red: #A72F2F;
+    --red-bg: #FFE7E7;
+    --radius-sm: 10px;
+    --radius-md: 14px;
+  }
+
+  #wrap {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: var(--app-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border-c)
+  }
+
+  #topbar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-c);
+    padding: 0;
+    height: 48px;
+    flex-shrink: 0
+  }
+
+  .tb-section {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px;
+    height: 100%;
+    border-right: 1px solid var(--border-c)
+  }
+
+  .tb-section:last-child {
+    border-right: none;
+    margin-left: auto
+  }
+
+  .tb-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-3);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-right: 2px
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(31, 98, 184, .16);
+    background: #F8FBFF;
+    color: var(--text-1);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .16s, border-color .16s, transform .16s, box-shadow .16s;
+    white-space: nowrap;
+    font-family: inherit
+  }
+
+  .btn:hover {
+    background: var(--blue-soft);
+    border-color: var(--blue);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(31, 98, 184, .08)
+  }
+
+  .btn i {
+    font-size: 14px;
+    color: var(--blue)
+  }
+
+  .btn.accent {
+    background: var(--blue);
+    color: #fff;
+    border-color: var(--blue)
+  }
+
+  .btn.accent:hover {
+    background: #17478f;
+    border-color: #17478f
+  }
+
+  .btn.accent i {
+    color: #fff
+  }
+
+  .file-input {
+    display: none
+  }
+
+  #main {
+    display: flex;
+    flex: 1;
+    min-height: 0
+  }
+
+  #sidebar {
+    width: 210px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--panel-bg);
+    border-right: 1px solid var(--border-c)
+  }
+
+  #sb-head {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border-c)
+  }
+
+  .sb-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 4px
+  }
+
+  .sb-hint {
+    font-size: 11px;
+    color: var(--text-3)
+  }
+
+  #eleve-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px
+  }
+
+  .ec {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(31, 98, 184, .14);
+    background: var(--panel-alt);
+    cursor: grab;
+    user-select: none;
+    transition: border-color .16s, background .16s, transform .16s, box-shadow .16s
+  }
+
+  .ec:hover {
+    border-color: var(--blue);
+    background: #EEF4FF;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(31, 98, 184, .06)
+  }
+
+  .ec.dragging {
+    opacity: .45
+  }
+
+  .ec.placed {
+    background: var(--green-bg);
+    border-color: #88b6a8
+  }
+
+  .ec.placed .en {
+    color: var(--green)
+  }
+
+  .av {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 500;
+    flex-shrink: 0
+  }
+
+  .en {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-1);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap
+  }
+
+  #map-zone {
+    flex: 1;
+    position: relative
+  }
+
+  #map {
+    width: 100%;
+    height: 100%
+  }
+
+  #statusbar {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 0 14px;
+    background: var(--panel-bg);
+    border-top: 1px solid var(--border-c);
+    flex-shrink: 0
+  }
+
+  .st {
+    font-size: 11px;
+    color: var(--text-2)
+  }
+
+  .st b {
+    color: var(--text-1);
+    font-weight: 500
+  }
+
+  #st-warn {
+    display: none;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--red);
+    margin-left: auto;
+    display: none;
+    align-items: center;
+    gap: 4px
+  }
+
+  #geocode-bar {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--blue)
+  }
+
+  .spin {
+    width: 11px;
+    height: 11px;
+    border: 1.5px solid #ccc;
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: spin .7s linear infinite
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg)
+    }
+  }
+
+  .toast-wrap {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: none
+  }
+
+  .toast {
+    background: var(--text-1);
+    color: #fff;
+    padding: 7px 13px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity .25s;
+    pointer-events: none
+  }
+
+  .toast.danger {
+    background: var(--red)
+  }
+
+  .toast.show {
+    opacity: 1
+  }
+
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 12px;
+    gap: 6px;
+    color: var(--text-3);
+    font-size: 12px;
+    text-align: center
+  }
+
+  .empty i {
+    font-size: 22px
+  }
+
+  .pcontent {
+    font-family: system-ui, sans-serif;
+    min-width: 160px
+  }
+
+  .ptitle {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111;
+    margin-bottom: 1px
+  }
+
+  .psect {
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 2px
+  }
+
+  .padr {
+    font-size: 10px;
+    color: #aaa;
+    margin-bottom: 8px
+  }
+
+  .pbadge {
+    font-size: 11px;
+    background: var(--blue-bg);
+    color: var(--blue);
+    border-radius: 6px;
+    padding: 4px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    border: 1px solid rgba(31, 98, 184, .16)
+  }
+
+  .pbadge .rx {
+    cursor: pointer;
+    color: #7b91ac;
+    font-size: 12px;
+    line-height: 1;
+    margin-left: 6px;
+    padding: 0 2px
+  }
+
+  .pbadge .rx:hover {
+    color: var(--red)
+  }
+
+  .pdrop {
+    border: 1.5px dashed rgba(31, 98, 184, .3);
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+    font-size: 11px;
+    color: #5d748f;
+    margin-top: 8px;
+    background: #f9fbff
+  }
+
+  .pdrop.ov,
+  .leaflet-marker-icon.ov {
+    border-color: var(--blue);
+    background: #e7f0ff;
+    color: var(--blue)
+  }
+
+  .leaflet-marker-icon.ov {
+    transform: none !important;
+    z-index: 1001 !important;
+    box-shadow: none !important;
+  }
+
+  .pwarn {
+    background: #fff3f3;
+    color: var(--red);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    margin-bottom: 8px;
+    border: 1px solid rgba(179, 47, 47, .16)
+  }
+
+  .csv-note {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 48, 79, .28);
+    z-index: 1001;
+    padding: 20px
+  }
+
+  .csv-note-card {
+    max-width: 560px;
+    width: 100%;
+    background: #f8fbff;
+    border-radius: 18px;
+    padding: 22px;
+    box-shadow: 0 22px 48px rgba(15, 48, 79, .16);
+    border: 1px solid rgba(31, 98, 184, .14)
+  }
+
+  .csv-note-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px
+  }
+
+  .csv-note-body {
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.6
+  }
+
+  .csv-note-body p {
+    margin: 0 0 10px
+  }
+</style>
+
+<div id="wrap">
+  <div id="topbar">
+    <div class="tb-section">
+      <span class="tb-label">Élèves</span>
+      <button class="btn" onclick="document.getElementById('fi-eleves').click()"><i class="ti ti-upload"
+          aria-hidden="true"></i> Importer CSV</button>
+      <input type="file" id="fi-eleves" class="file-input" accept=".csv" onchange="importEleves(this)">
+      <button class="btn" onclick="showCsvNote('eleves')"><i class="ti ti-file-text" aria-hidden="true"></i> Format
+        CSV</button>
+    </div>
+    <div class="tb-section">
+      <span class="tb-label">Entreprises</span>
+      <button class="btn" onclick="document.getElementById('fi-ent').click()"><i class="ti ti-upload"
+          aria-hidden="true"></i> Importer CSV</button>
+      <input type="file" id="fi-ent" class="file-input" accept=".csv" onchange="importEnts(this)">
+      <button class="btn" onclick="showCsvNote('ents')"><i class="ti ti-file-text" aria-hidden="true"></i> Format
+        CSV</button>
+    </div>
+    <div class="tb-section" style="border-right:none;margin-left:auto">
+      <div id="geocode-bar">
+        <div class="spin"></div><span id="geo-msg">Géocodage…</span>
+      </div>
+      <button class="btn" onclick="toggleBusLines()"><i class="ti ti-bus" aria-hidden="true"></i> Lignes bus</button>
+      <button class="btn accent" onclick="exportXlsx()"><i class="ti ti-file-spreadsheet" aria-hidden="true"></i>
+        Exporter Excel</button>
+    </div>
+  </div>
+
+  <div id="csv-note" class="csv-note" aria-hidden="true">
+    <div class="csv-note-card">
+      <div class="csv-note-header">
+        <strong id="csv-note-title">Format CSV</strong>
+        <button class="btn" onclick="hideCsvNote()" style="padding:0 10px;height:28px;font-size:12px">Fermer</button>
+      </div>
+      <div id="csv-note-body" class="csv-note-body"></div>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="sidebar">
+      <div id="sb-head">
+        <div class="sb-title">Élèves <span id="nb-el" style="font-weight:400;color:var(--text-3)">— 0</span></div>
+        <div class="sb-hint">Glisser vers une entreprise</div>
+      </div>
+      <div id="eleve-list">
+        <div class="empty"><i class="ti ti-users" aria-hidden="true"></i>Aucun élève chargé</div>
+      </div>
+    </div>
+    <div id="map-zone">
+      <div id="map"></div>
+      <div class="toast-wrap">
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="statusbar">
+    <span class="st">Affectés : <b id="s-aff">0</b> / <b id="s-tot">0</b></span>
+    <span class="st">Entreprises : <b id="s-ent">0</b></span>
+    <span id="s-geo-err" style="font-size:11px;color:var(--red);display:none"></span>
+    <span id="st-warn"
+      style="display:none;align-items:center;gap:4px;font-size:11px;font-weight:500;color:var(--red);margin-left:auto"><i
+        class="ti ti-alert-triangle" style="font-size:13px" aria-hidden="true"></i><span id="st-warn-txt"></span></span>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+  let eleves = [], ents = [], aff = {}, markers = {}, map, drag = null, busLayer = null;
+  const GTFS_DATASET_ID = '66ab9b746eaa9c29b082df91';
+  const GTFS_SHAPES_URL = `https://app.pysae.com/api/v2/groups/keolis-9cc4/gtfs/${GTFS_DATASET_ID}/shapes`;
+  const GTFS_ROUTES_URL = `https://app.pysae.com/api/v2/groups/keolis-9cc4/gtfs/${GTFS_DATASET_ID}/routes`;
+
+  async function loadRubanLines() {
+    const [shapesRes, routesRes] = await Promise.all([
+      fetch(GTFS_SHAPES_URL, { cache: 'no-store' }),
+      fetch(GTFS_ROUTES_URL, { cache: 'no-store' })
+    ]);
+    if (!shapesRes.ok || !routesRes.ok) throw new Error('GTFS fetch failed');
+    const shapes = await shapesRes.json();
+    const routes = await routesRes.json();
+    const routeMap = Object.fromEntries((routes || []).map(r => [String(r.route_id), r]));
+    return (shapes || []).map(shape => ({
+      ...shape,
+      routeMeta: (shape.routes || []).map(routeId => routeMap[String(routeId)]).filter(Boolean)
+    }));
+  }
+  const C = ["#4D7FDB", "#2B80C9", "#1F62B8", "#1765A8", "#0D5090", "#265D96", "#3779AC", "#4F8EC0", "#6A9DD1", "#84B0E2"];
+  const B = ["#E7F0FF", "#DBE8FF", "#D0E1FF", "#C5DBFF", "#BBCFFF", "#B0C4FF", "#A5B8FF", "#98A9F0", "#8D9CE3", "#8190D7"];
+  const csvNoteTexts = {
+    eleves: '<p>Fichier CSV élèves : une colonne avec le nom complet ou <strong>Prénom</strong> et <strong>Nom</strong> séparés.</p><p>Le séparateur peut être <strong>;</strong>, <strong>,</strong> ou <strong>tabulation</strong>.</p>',
+    ents: '<p>Fichier CSV entreprises : colonne <strong>Nom</strong> et colonne <strong>Adresse</strong> obligatoires.</p><p>Optionnel : <strong>Secteur</strong>.</p><p>Le séparateur peut être <strong>;</strong>, <strong>,</strong> ou <strong>tabulation</strong>.</p>'
+  };
+  function normalizeHeader(value) {
+    return value
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  }
+  function detectSeparator(sample) {
+    return [';', '\t', ',', '|'].reduce((best, sep) => {
+      const count = sample.split(sep).length;
+      return count > best.count ? { sep, count } : best;
+    }, { sep: ';', count: 0 }).sep;
+  }
+  function splitCsvLine(line, sep) {
+    const cells = [];
+    let cell = '';
+    let inQuote = false;
+    let quoteChar = '';
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (!inQuote && (ch === '"' || ch === "'")) {
+        inQuote = true;
+        quoteChar = ch;
+        continue;
+      }
+      if (inQuote && ch === quoteChar) {
+        if (line[i + 1] === quoteChar) {
+          cell += quoteChar;
+          i++;
+        } else {
+          inQuote = false;
+        }
+        continue;
+      }
+      if (!inQuote && ch === sep) {
+        cells.push(cell.trim().replace(/^['"]|['"]$/g, ''));
+        cell = '';
+        continue;
+      }
+      cell += ch;
+    }
+    cells.push(cell.trim().replace(/^['"]|['"]$/g, ''));
+    return cells;
+  }
+  function guessAddressCell(cells, ignoreIndexes = []) {
+    const addressKeywords = /\b(rue|avenue|boulevard|bd|impasse|all[eé]e|place|cours|chemin|route|voie|quai|lotissement|résidence|residence|zone|parc|batiment|bâtiment)\b/i;
+    let best = '';
+    let bestScore = -1;
+    cells.forEach((value, idx) => {
+      if (ignoreIndexes.includes(idx) || !value) return;
+      let score = 0;
+      if (addressKeywords.test(value)) score += 4;
+      if (/\d/.test(value)) score += 2;
+      if (/[a-zA-Z]/.test(value) && /\d/.test(value)) score += 1;
+      score += Math.min(2, value.length / 30);
+      if (score > bestScore) {
+        bestScore = score;
+        best = value;
+      }
+    });
+    return best;
+  }
+  function showCsvNote(type) { const note = document.getElementById('csv-note'); const body = document.getElementById('csv-note-body'); const title = document.getElementById('csv-note-title'); title.textContent = type === 'eleves' ? 'Format CSV élèves' : 'Format CSV entreprises'; body.innerHTML = csvNoteTexts[type] || ''; note.style.display = 'flex'; note.setAttribute('aria-hidden', 'false'); }
+  function hideCsvNote() { const note = document.getElementById('csv-note'); note.style.display = 'none'; note.setAttribute('aria-hidden', 'true'); }
+
+  function initMap() {
+    if (map) return;
+    map = L.map('map', { zoomControl: true }).setView([46.5, 2.5], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM', maxZoom: 19 }).addTo(map);
+  }
+
+  async function geocode(addr) {
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=1`, { headers: { 'Accept-Language': 'fr' } });
+      const d = await r.json();
+      if (d && d[0]) return { lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon) };
+    } catch (e) { }
+    return null;
+  }
+
+  async function geocodeAll(liste) {
+    const bar = document.getElementById('geocode-bar');
+    const msg = document.getElementById('geo-msg');
+    bar.style.display = 'flex';
+    let err = 0;
+    for (let i = 0; i < liste.length; i++) {
+      const e = liste[i];
+      msg.textContent = `Géocodage ${i + 1}/${liste.length} — ${e.nom}`;
+      if (!e.lat) {
+        const c = await geocode(e.adresse);
+        if (c) { e.lat = c.lat; e.lng = c.lng; } else { e.err = true; err++; }
+        await new Promise(r => setTimeout(r, 1100));
+      }
+    }
+    bar.style.display = 'none';
+    if (err) { const el = document.getElementById('s-geo-err'); el.style.display = ''; el.textContent = `${err} adresse(s) non trouvée(s)`; }
+    return liste;
+  }
+
+  function demoEleves() {
+    eleves = ["Alice Martin", "Baptiste Lebrun", "Chloé Renard", "Dylan Petit", "Emma Thomas", "Florian Bernard", "Gaëlle Simon", "Hugo Nguyen", "Inès Dupont", "Jules Moreau"].map((n, i) => ({ id: i + 1, nom: n, c: C[i % 10], b: B[i % 10] }));
+    aff = {}; renderSidebar(); toast("10 élèves démo chargés");
+  }
+
+  async function demoEnts() {
+    initMap();
+    const d = [
+      { id: 1, nom: "Tech & Co", secteur: "Informatique", adresse: "2 rue de la Paix, Lyon" },
+      { id: 2, nom: "BTP Martin", secteur: "Construction", adresse: "15 avenue Jean Jaurès, Villeurbanne" },
+      { id: 3, nom: "Cabinet Dubois", secteur: "Comptabilité", adresse: "Place Bellecour, Lyon" },
+      { id: 4, nom: "Ateliers Moreau", secteur: "Mécanique", adresse: "10 rue Garibaldi, Lyon" },
+      { id: 5, nom: "Café des Arts", secteur: "Restauration", adresse: "Cours Lafayette, Lyon" },
+    ];
+    d.forEach(e => { aff[e.id] = aff[e.id] || []; });
+    ents = await geocodeAll(d);
+    renderMarkers();
+    const v = ents.filter(e => e.lat);
+    if (v.length) map.fitBounds(L.latLngBounds(v.map(e => [e.lat, e.lng])), { padding: [40, 40] });
+    toast(`${ents.length} entreprises chargées`);
+  }
+
+  function importEleves(inp) {
+    const f = inp.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = e => {
+      const lines = e.target.result.split('\n').map(l => l.trim()).filter(Boolean);
+      const sep = detectSeparator(lines[0]);
+      const hdr = splitCsvLine(lines[0], sep).map(h => normalizeHeader(h));
+      const iN = hdr.findIndex(h => h.includes('nom') || h.includes('eleve') || h.includes('eleve'));
+      const iP = hdr.findIndex(h => h.includes('prenom'));
+      const parsed = [];
+      for (let i = 1; i < lines.length; i++) {
+        const c = lines[i].split(sep).map(x => x.trim().replace(/^["']|["']$/g, ''));
+        let n = iP >= 0 && iN >= 0 ? (c[iP] + ' ' + c[iN]) : c[iN >= 0 ? iN : 0] || '';
+        n = n.trim(); if (n) parsed.push({ id: i, nom: n });
+      }
+      eleves = parsed; eleves.forEach((e, i) => { e.c = C[i % 10]; e.b = B[i % 10]; });
+      aff = {}; renderSidebar(); toast(eleves.length + ' élèves importés');
+    };
+    r.readAsText(f, 'UTF-8'); inp.value = '';
+  }
+
+  async function importEnts(inp) {
+    const f = inp.files[0]; if (!f) return;
+    initMap();
+    const r = new FileReader();
+    r.onload = async e => {
+      const lines = e.target.result.split('\n').map(l => l.trim()).filter(Boolean);
+      const sep = detectSeparator(lines[0]);
+      const hdr = splitCsvLine(lines[0], sep).map(h => normalizeHeader(h));
+      const iN = hdr.findIndex(h => h.includes('nom') || h.includes('entreprise') || h.includes('company') || h.includes('societe'));
+      const iS = hdr.findIndex(h => h.includes('secteur') || h.includes('activit') || h.includes('activity'));
+      const iA = hdr.findIndex(h => h.includes('adresse') || h.includes('address') || h.includes('rue') || h.includes('ville') || h.includes('code'));
+      const parsed = [];
+      for (let i = 1; i < lines.length; i++) {
+        const c = lines[i].split(sep).map(x => x.trim().replace(/^["']|["']$/g, ''));
+        const nom = (c[iN >= 0 ? iN : 0] || '').trim();
+        const secteur = iS >= 0 ? (c[iS] || '').trim() : '';
+        const adresse = iA >= 0 ? (c[iA] || '').trim() : '';
+        if (nom && adresse) parsed.push({ id: i, nom, secteur, adresse });
+      }
+      Object.values(markers).forEach(m => { if (m) m.remove(); }); markers = {};
+      document.getElementById('s-geo-err').style.display = 'none';
+      ents = await geocodeAll(parsed);
+      ents.forEach(e => { aff[e.id] = aff[e.id] || []; });
+      renderMarkers();
+      const v = ents.filter(e => e.lat);
+      if (v.length) map.fitBounds(L.latLngBounds(v.map(e => [e.lat, e.lng])), { padding: [40, 40] });
+      toast(ents.length + ' entreprises géocodées');
+    };
+    r.readAsText(f, 'UTF-8'); inp.value = '';
+  }
+
+  function renderSidebar() {
+    const el = document.getElementById('eleve-list');
+    document.getElementById('nb-el').textContent = '— ' + eleves.length;
+    if (!eleves.length) { el.innerHTML = '<div class="empty"><i class="ti ti-users" aria-hidden="true"></i>Aucun élève chargé</div>'; updateStats(); return; }
+    el.innerHTML = '';
+    eleves.forEach(e => {
+      const placed = Object.values(aff).flat().some(x => x.id === e.id);
+      const d = document.createElement('div');
+      d.className = 'ec' + (placed ? ' placed' : '');
+      d.draggable = true;
+      const ini = e.nom.split(' ').map(p => p[0] || '').join('').slice(0, 2).toUpperCase();
+      d.innerHTML = `<div class="av" style="background:${e.b};color:${e.c}">${ini}</div><span class="en">${e.nom}</span>${placed ? '<i class="ti ti-check" style="font-size:11px;color:var(--green)" aria-hidden="true"></i>' : ''}`;
+      d.addEventListener('dragstart', ev => { drag = e; d.classList.add('dragging'); ev.dataTransfer.effectAllowed = 'move'; });
+      d.addEventListener('dragend', () => d.classList.remove('dragging'));
+      el.appendChild(d);
+    });
+    updateStats();
+  }
+
+  function renderMarkers() {
+    Object.values(markers).forEach(m => { if (m) m.remove(); }); markers = {};
+    ents.forEach(e => { if (!aff[e.id]) aff[e.id] = []; if (e.lat && e.lng) makeMarker(e); });
+    document.getElementById('s-ent').textContent = ents.filter(e => e.lat).length;
+    updateStats();
+  }
+
+  function createMarkerIcon(ent) {
+    const nb = (aff[ent.id] || []).length;
+    const over = nb > 2;
+    const bc = over ? '#C62828' : '#546E7A';
+    const nc = over ? '#C62828' : '#185FA5';
+    const nbg = over ? '#FFEBEE' : '#EBF2FB';
+    return L.divIcon({
+      className: '',
+      html: `<div style="background:#fff;border:1.5px solid ${bc};border-radius:8px;padding:5px 9px;font-size:11px;font-weight:500;color:#1A1917;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:system-ui,sans-serif">
+      <span style="max-width:110px;overflow:hidden;text-overflow:ellipsis">${ent.nom}</span>
+      <span style="background:${nbg};color:${nc};border:1px solid ${nc};border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${nb}</span>
+    </div>`,
+      iconSize: [null, null], iconAnchor: [0, 18]
+    });
+  }
+
+  function makeMarker(ent) {
+    const icon = createMarkerIcon(ent);
+    const m = L.marker([ent.lat, ent.lng], { icon });
+    m.on('click', () => openPopup(ent, m));
+    m.on('add', () => {
+      const el = m.getElement();
+      if (!el) return;
+      el.addEventListener('dragenter', e => { e.preventDefault(); el.classList.add('ov'); });
+      el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('ov'); });
+      el.addEventListener('dragleave', () => el.classList.remove('ov'));
+      el.addEventListener('drop', e => {
+        e.preventDefault(); el.classList.remove('ov');
+        assignStudentToEnt(ent.id);
+      });
+    });
+    m.addTo(map);
+    markers[ent.id] = m;
+  }
+
+  async function toggleBusLines() {
+    if (!map) initMap();
+    if (busLayer) {
+      map.removeLayer(busLayer);
+      busLayer = null;
+      toast('Lignes de bus masquées');
+      return;
+    }
+    try {
+      const shapes = await loadRubanLines();
+      if (!shapes.length) {
+        toast('Aucune géométrie de ligne Ruban disponible');
+        return;
+      }
+      const group = L.layerGroup();
+      const bounds = [];
+      shapes.forEach(shape => {
+        const coords = (shape.geometry && shape.geometry.coordinates || []).map(([lng, lat]) => [lat, lng]);
+        if (coords.length < 2) return;
+        const routeLabel = (shape.routes || []).join(', ');
+        const routeMeta = (shape.routeMeta || []).find(Boolean);
+        const color = routeMeta && routeMeta.route_color ? `#${routeMeta.route_color}` : '#D32F2F';
+        const line = L.polyline(coords, { color, weight: 4, opacity: 0.85, lineCap: 'round', lineJoin: 'round' });
+        line.bindTooltip(routeLabel || 'Ligne Ruban', { sticky: true });
+        line.addTo(group);
+        coords.forEach(([lat, lng]) => bounds.push([lat, lng]));
+      });
+      if (bounds.length) map.fitBounds(L.latLngBounds(bounds), { padding: [40, 40] });
+      busLayer = group.addTo(map);
+      toast(`${shapes.length} géométries de ligne Ruban affichées`);
+    } catch (err) {
+      console.error(err);
+      toast('Impossible de charger les géométries Ruban', true);
+    }
+  }
+
+  function renderPopupHtml(ent) {
+    const a = aff[ent.id] || [];
+    const over = a.length > 2;
+    return `<div class="pcontent">
+    <div class="ptitle">${ent.nom}</div>
+    ${ent.secteur ? `<div class="psect">${ent.secteur}</div>` : ''}
+    <div class="padr"><i class="ti ti-map-pin" style="font-size:10px"></i> ${ent.adresse || ''}</div>
+    ${over ? `<div class="pwarn"><i class="ti ti-alert-triangle"></i> Plus de 2 élèves affectés</div>` : ''}
+    <div id="pp-${ent.id}">${a.map(el => `<div class="pbadge"><span>${el.nom}</span><span class="rx" data-e="${ent.id}" data-u="${el.id}">×</span></div>`).join('')}</div>
+    <div class="pdrop" id="pd-${ent.id}"><i class="ti ti-drag-drop" style="font-size:13px"></i> Déposer un élève</div>
+  </div>`;
+  }
+
+  function bindPopupEvents(ent, m) {
+    setTimeout(() => {
+      document.querySelectorAll('.rx').forEach(btn => {
+        if (btn.dataset.bound === '1') return;
+        btn.dataset.bound = '1';
+        btn.addEventListener('click', () => {
+          const eid = parseInt(btn.dataset.e), uid = parseInt(btn.dataset.u);
+          aff[eid] = (aff[eid] || []).filter(x => x.id !== uid);
+          if (markers[eid]) {
+            markers[eid].setIcon(createMarkerIcon(ents.find(e => e.id === eid)));
+            updatePopup(ents.find(e => e.id === eid), markers[eid]);
+          }
+          renderSidebar();
+        });
+      });
+      const dz = document.getElementById('pd-' + ent.id);
+      if (dz && dz.dataset.bound !== '1') {
+        dz.dataset.bound = '1';
+        dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('ov'); });
+        dz.addEventListener('dragleave', () => dz.classList.remove('ov'));
+        dz.addEventListener('drop', e => {
+          e.preventDefault(); dz.classList.remove('ov');
+          if (!drag) return;
+          Object.keys(aff).forEach(k => { aff[k] = (aff[k] || []).filter(x => x.id !== drag.id); });
+          if (!(aff[ent.id] || []).some(x => x.id === drag.id)) aff[ent.id].push({ ...drag });
+          if (markers[ent.id]) {
+            markers[ent.id].setIcon(createMarkerIcon(ent));
+            updatePopup(ent, markers[ent.id]);
+          }
+          renderSidebar();
+          if ((aff[ent.id] || []).length > 2) toast('⚠ ' + ent.nom + ' — plus de 2 élèves', true);
+          drag = null;
+        });
+      }
+    }, 80);
+  }
+
+  function updatePopup(ent, m) {
+    const popup = m.getPopup();
+    const wasOpen = popup && popup.isOpen && popup.isOpen();
+    if (!popup) {
+      m.bindPopup(renderPopupHtml(ent), { maxWidth: 220, minWidth: 170 });
+    } else {
+      popup.setContent(renderPopupHtml(ent));
+    }
+    if (wasOpen) m.openPopup();
+    bindPopupEvents(ent, m);
+  }
+
+  function refreshPopup(ent, m) {
+    const popup = m.getPopup();
+    if (popup && popup.isOpen && popup.isOpen()) {
+      updatePopup(ent, m);
+    }
+  }
+
+  function assignStudentToEnt(entId) {
+    if (!drag) return;
+    const existing = Object.keys(aff).find(k => (aff[k] || []).some(x => x.id === drag.id));
+    if (existing) {
+      aff[existing] = (aff[existing] || []).filter(x => x.id !== drag.id);
+    }
+    if (!(aff[entId] || []).some(x => x.id === drag.id)) {
+      aff[entId] = aff[entId] || [];
+      aff[entId].push({ ...drag });
+    }
+    const ent = ents.find(e => e.id === entId);
+    if (markers[entId]) {
+      markers[entId].setIcon(createMarkerIcon(ent));
+      updatePopup(ent, markers[entId]);
+    }
+    renderSidebar();
+    if ((aff[entId] || []).length > 2) toast('⚠ ' + ent.nom + ' — plus de 2 élèves', true);
+    drag = null;
+  }
+
+  function openPopup(ent, m) {
+    updatePopup(ent, m);
+    m.openPopup();
+  }
+
+  function updateStats() {
+    const p = new Set(Object.values(aff).flat().map(e => e.id));
+    document.getElementById('s-aff').textContent = p.size;
+    document.getElementById('s-tot').textContent = eleves.length;
+    const over = ents.filter(e => (aff[e.id] || []).length > 2);
+    const w = document.getElementById('st-warn');
+    if (over.length) { w.style.display = 'flex'; document.getElementById('st-warn-txt').textContent = over.length + ' entreprise(s) avec plus de 2 élèves'; }
+    else w.style.display = 'none';
+  }
+
+  function exportXlsx() {
+    const rows = [['Élève', 'Entreprise', 'Secteur', 'Adresse']];
+    Object.entries(aff).forEach(([eid, els]) => {
+      const e = ents.find(x => x.id == eid);
+      els.forEach(el => rows.push([el.nom, e ? e.nom : '', e ? e.secteur : '', e ? e.adresse : '']));
+    });
+    if (rows.length === 1) { toast('Aucune affectation à exporter'); return; }
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{ wch: 22 }, { wch: 22 }, { wch: 18 }, { wch: 32 }];
+    XLSX.utils.book_append_sheet(wb, ws, 'Affectations');
+    XLSX.writeFile(wb, 'affectations_stages.xlsx');
+    toast('Export téléchargé — ' + (rows.length - 1) + ' ligne(s)');
+  }
+
+  function toast(msg, danger = false) {
+    const t = document.getElementById('toast');
+    t.className = 'toast' + (danger ? ' danger' : '');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  window.addEventListener('DOMContentLoaded', () => { initMap(); renderSidebar(); updateStats(); });
+</script>
